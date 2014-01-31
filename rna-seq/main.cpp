@@ -121,6 +121,8 @@ int main(int argc, char *argv[])
     return -1;  
   }
 
+  clock_t START_TIME = clock();
+
   coverage_limit = 10; // TODO: should be able to pass in as an option in future
 
   cout << endl;
@@ -431,6 +433,9 @@ int main(int argc, char *argv[])
 
   cout << (double)(num_all_reads - still_unmatched) / (double)num_all_reads << "% after running against possible exon regions" << endl;
   fprintf(summaryFile, "%f %% reads matched after running on discovered exon regions\n", (num_all_reads - still_unmatched) / (double)num_all_reads );
+
+  clock_t END_TIME = clock();
+  cout << "Running time: " << (double)(END_TIME - START_TIME) / CLOCKS_PER_SEC << endl;
   
   return 0;  
 }
