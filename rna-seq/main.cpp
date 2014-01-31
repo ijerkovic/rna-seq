@@ -72,12 +72,9 @@ int read_length;
 int coverage_limit;
 
 void addCoverage(Exon &e, int start, int end) {
-  //e.c += 20;
-  //cout << start << " " << end << endl;
   e.c++;
   for(int i = start; i <= MIN(end,1023); i++) {
     e.coverage[i]++;
-    //cout << e.coverage[i]; 
   }  
 }
 
@@ -85,10 +82,8 @@ double calcCoverage(Exon &e)
 {
   double cov = 0;
   for(int i = 0; i < 1024; i++) {
-    //if (e.coverage[i] > 10)
     cov += e.coverage[i];
   }
-  //cout << e.c << " " << cov / (double)(e.right - e.left) << endl;
   return cov / (double)(e.right - e.left);
 }
 
@@ -114,8 +109,6 @@ void insertIntoExonRegions(int left)
 
 int main(int argc, char *argv[]) 
 {
-  // client index genome.fa index_dir
-  // client solve genome.fa index_dir reads.fq result_file
   if(argc != 5 && argc != 6) {
     cout << "Usage: rna-seq <genome.fa> <index_dir> <reads.fq> <result_file> <optional-gtf-file>" << endl;
     return -1;  
@@ -162,15 +155,7 @@ int main(int argc, char *argv[])
 
     std::vector<std::string> stats = split(line, ';');
     
-    //for(int i = 0; i < stats.size(); i++) {
-    //  cout << stats[ i ] << endl;  
-    //}
-    
     std::vector<std::string> firstCol = split(stats[0], ',');
-
-    //for(int i = 0; i < firstCol.size(); i++) {
-    //  cout << firstCol[ i ] << endl;  
-    //}
 
     int num_matches = atoi(firstCol[firstCol.size() - 1].c_str());
     num_matched_reads += (num_matches > 0);
@@ -180,15 +165,11 @@ int main(int argc, char *argv[])
     } else {
       for(int i = 1; i < stats.size(); i++) {
         std::vector<std::string> tmp = split(stats[i], ',');
-        //cout << atoi(tmp[4].c_str()) << endl; continue;
-        //int isEndGene = atoi(tmp[4].c_str());
         
-        //if(isEndGene == 0 || 1) {
-
-          // TODO: for now just take the match with best score
-          start_positions.push_back(atoi(tmp[2].c_str()));
-          all_refs.push_back(firstCol[0]);
-          break;
+        // TODO: for now just take the match with best score
+        start_positions.push_back(atoi(tmp[2].c_str()));
+        all_refs.push_back(firstCol[0]);
+        break;
       }  
     }
   }
@@ -251,9 +232,7 @@ int main(int argc, char *argv[])
   if(argc == 6 ) {
     
     // TODO: still not being considered into calculations
-
     cout << "extracting exon information from gtf annotation" << endl;
-    // chr19 unknown exon  60951 61894 . - . gene_id "WASH5P"; transcript_id "NR_033266"; gene_name "WASH5P"; tss_id "TSS28072";
       
     while(std::getline(gtf_annotation, line)) {
 
@@ -264,9 +243,7 @@ int main(int argc, char *argv[])
       if (data[2] == "exon") {
         gtf_exon_regions.push_back(make_pair(atoi(data[3].c_str()), atoi(data[4].c_str())));
       }
-    
     }
-
   }
 
   cout << "reconstructing exon regions" << endl;
@@ -281,9 +258,7 @@ int main(int argc, char *argv[])
   int all = 0;
   for(int i = 0; i < exon_regions.size(); i++) {
     if(calcCoverage(exon_regions[i])>coverage_limit) {
-      //cout << exon_regions[i].c << endl;
       all += exon_regions[i].c;
-      //cout << exon_regions[i].left << " " << exon_regions[i].right << " " << calcCoverage(exon_regions[i]) << " " << exon_regions[i].right - exon_regions[i].left << endl;  
       possible_exon_regions.push_back(exon_regions[i]);
     }
   }
@@ -382,11 +357,8 @@ int main(int argc, char *argv[])
   lisa_mapper += " ";
   lisa_mapper += "tmp-res";
   
-  //cout << lisa_mapper << endl;
-
   system(lisa_mapper.c_str());
  
-   
   ifstream lissa_results2("tmp-res");
   int still_unmatched = 0;
   int all_of_unmatched = 0;
@@ -396,34 +368,21 @@ int main(int argc, char *argv[])
 
     std::vector<std::string> stats = split(line, ';');
     
-    //for(int i = 0; i < stats.size(); i++) {
-    //  cout << stats[ i ] << endl;  
-    //}
-    
     std::vector<std::string> firstCol = split(stats[0], ',');
-
-    //for(int i = 0; i < firstCol.size(); i++) {
-    //  cout << firstCol[ i ] << endl;  
-    //}
 
     int num_matches = atoi(firstCol[firstCol.size() - 1].c_str());
     num_matched_reads += (num_matches > 0);
 
     if(!num_matches) {
-      //unmatched_reads_refs.push_back(firstCol[0]);
       still_unmatched++;
     } else {
       for(int i = 1; i < stats.size(); i++) {
         std::vector<std::string> tmp = split(stats[i], ',');
-        //cout << atoi(tmp[4].c_str()) << endl; continue;
-        //int isEndGene = atoi(tmp[4].c_str());
-        
-        //if(isEndGene == 0 || 1) {
 
-          // for now just take the match with best score
-          start_positions.push_back(atoi(tmp[2].c_str()));
-          all_refs.push_back(firstCol[0]);
-          break;
+        // for now just take the match with best score
+        start_positions.push_back(atoi(tmp[2].c_str()));
+        all_refs.push_back(firstCol[0]);
+        break;
       }  
     }
   }
