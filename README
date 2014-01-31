@@ -1,0 +1,12 @@
+run ./scripts/setup.sh to export binaries to PATH needed to run rna-seq or do it manually.
+'client' and 'rna-seq' are needed to be included in you PATH variable.
+
+rna-seq is a tool for mapping rna reads against its genome, without knowing where the exon regions in genome initially are.
+
+Usage: rna-seq <genome.fa> <index_dir> <reads.fq> <result_file> <optional-gtf-file>
+
+<genome.fa> is the genome file from which reads were extracted
+<index_dir> is directory name where data for genome index will be held
+<reads.fq> rna-reads in fastq/fq format
+<result_file> file with various statistics
+<optional-gtf-file> helps in more accurate finding of reads to exons mappings - not being used yet
