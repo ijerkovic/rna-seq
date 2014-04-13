@@ -1,3 +1,3 @@
 #!/bin/bash
-export PATH=$PATH:../lisa/
-export PATH=$PATH:../rna-seq/
+export PATH=$PATH:$PWD/../lisa/
+export PATH=$PATH:$PWD/../rna-seq/
