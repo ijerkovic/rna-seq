@@ -1,7 +1,14 @@
 #!/bin/bash
-export PATH=$PATH:$PWD/../lisa/
-export PATH=$PATH:$PWD/../rna-seq/
+REL_PATH_TO_RNA_SEQ=/home/ijerkovic/rna-seq
+
+PATH=$PATH:$REL_PATH_TO_RNA_SEQ/lisa
+PATH=$PATH:$REL_PATH_TO_RNA_SEQ/rna-seq
+#PATH=$PATH:$PWD/../lisa/
+#PATH=$PATH:$PWD/../rna-seq/
+export PATH
 
 # dependants are gflags and divsufsort
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ijerkovic/gflags/lib
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ijerkovic/divsufsort/lib
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ijerkovic/gflags/lib
+LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/ijerkovic/divsufsort/lib
+export LB_LIBRARY_PATH
+

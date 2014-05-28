@@ -1,11 +1,14 @@
 // Copyright 2014 Igor Jerkovic
 
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <algorithm>
 #include <vector>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <map>
 #include <iostream>
 
 using std::vector;
@@ -20,6 +23,8 @@ using std::make_pair;
 
 #define MAX(A, B) (((A) > (B)) ? (A) : (B))
 #define MIN(A, B) (((A) < (B)) ? (A) : (B))
+
+#define PRINT_INTRONS_GTF 0
 
 std::vector<std::string> &split(
   const std::string &s,
@@ -75,7 +80,7 @@ vector < Exon > exon_regions;
 vector <pair <int, int > > gtf_exon_regions;
 vector <int> start_positions;
 vector < Exon > possible_exon_regions;
-
+vector < pair<string, string> > known_intron_signals;
 
 // TODO(ijerkovic): for now only same read_length supported of all reads
 int read_length;
@@ -120,14 +125,28 @@ void insertIntoExonRegions(int left) {
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 5 && argc != 6) {
-    cout << "Usage: rna-seq <genome.fa> <index_dir> <reads.fq> <result_file> <optional-gtf-file>" << endl;
+  if (argc < 5) {
+    cout << "Usage: rna-seq <genome.fa> <index_dir> <reads.fq> <result_file> <optional-gtf-file> --cov-limit [coverage-limit-number]" << endl;
     return -1;
   }
 
+  freopen ("myfile.txt", "w", stdout);
+
   clock_t START_TIME = clock();
 
-  coverage_limit = 10;
+  coverage_limit = 20;
+  for (int i = 0; i < argc; i++) {
+    if (!strcmp(argv[i], "--cov-limit")) {
+      if (i + 1 < argc) {
+        coverage_limit = atoi(argv[i + 1]);
+      }
+    }
+  }
+  if (!coverage_limit) {
+    coverage_limit = 20;  
+  }
+  cout << "COV_LIMIT= " << coverage_limit << endl;
+
   // TODO(ijerkovic): should be able to pass in as an option in future
 
   cout << endl;
@@ -169,7 +188,11 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> firstCol = split(stats[0], ',');
 
     int num_matches = atoi(firstCol[firstCol.size() - 1].c_str());
-    num_matched_reads += (num_matches > 0);
+    
+    
+    //num_matched_reads += (num_matches > 0);
+    
+    
 
     if (!num_matches) {
       unmatched_reads_refs.push_back(firstCol[0]);
@@ -177,10 +200,21 @@ int main(int argc, char *argv[]) {
       for (int i = 1; i < stats.size(); i++) {
         std::vector<std::string> tmp = split(stats[i], ',');
 
+      
+        // CONSIDER ONLY FULL MATCHES
+        if(atoi(tmp[1].c_str()) >= 43 ) {
+          //unmatched_reads_refs.push_back(firstCol[0]);
+          start_positions.push_back(atoi(tmp[2].c_str()));
+          all_refs.push_back(firstCol[0]);
+          num_matched_reads++;
+          break;  
+        }
+
+
         // TODO(ijerkovic): for now just take the match with best score
-        start_positions.push_back(atoi(tmp[2].c_str()));
-        all_refs.push_back(firstCol[0]);
-        break;
+        //start_positions.push_back(atoi(tmp[2].c_str()));
+        //all_refs.push_back(firstCol[0]);
+        //break;
       }
     }
   }
@@ -224,6 +258,8 @@ int main(int argc, char *argv[]) {
     fgets(buff2, MAX_READ_LENGTH, all_reads_file);
   }
 
+  cout << "READ LENGTH= " << read_length << endl;
+
   FILE *unmatched_reads_file = fopen("unmatched.fq", "w");
   int j = 0;
   for (int i = 0; i < unmatched_reads_refs.size(); i++) {
@@ -238,25 +274,65 @@ int main(int argc, char *argv[]) {
     }
   }
 
-
-  ifstream gtf_annotation(argv[5]);
+  cout << "tu sam" << endl;
 
   // GTF file is provided - exon regions can be reconstructed
-  if (argc == 6) {
-    // TODO(ijerkovic): still not being considered into calculations
-    cout << "extracting exon information from gtf annotation" << endl;
+  if(argc >= 6) {
 
-    while (std::getline(gtf_annotation, line)) {
-      std::vector<std::string> data1 = split(line, ';');
-      replace(data1[0].begin(), data1[0].end(), '\t', ' ');
-      std::vector<std::string> data = split(data1[0], ' ');
+    cout << "tu sam2" << endl;
+    if (strcmp(argv[5], "--cov-limit") && !atoi(argv[5])) {
+      // TODO(ijerkovic): still not being considered into calculations
 
-      if (data[2] == "exon") {
-        gtf_exon_regions.push_back(
-          make_pair(atoi(data[3].c_str()), atoi(data[4].c_str())));
+      cout << "extracting exon information from gtf annotation" << endl;
+
+      ifstream gtf_annotation(argv[5]);
+      while (std::getline(gtf_annotation, line)) {
+        std::vector<std::string> data1 = split(line, ';');
+        replace(data1[0].begin(), data1[0].end(), '\t', ' ');
+        std::vector<std::string> data = split(data1[0], ' ');
+
+        if (data[2] == "exon") {
+          if (atoi(data[3].c_str()) >= 3000000 && atoi(data[4].c_str()) <= 3500000) {
+            gtf_exon_regions.push_back(
+              make_pair(atoi(data[3].c_str()), atoi(data[4].c_str())));
+          }
+    
+        }
       }
     }
   }
+
+  cout << "GTF-ANNOTATIONS_AMOUNT= " << gtf_exon_regions.size() << endl;
+
+  std::map <string, int> MAPA;
+
+  // PRINT OUT INTRONS
+  if( PRINT_INTRONS_GTF ) {
+    FILE *inGenome = fopen(argv[1], "r");
+    char buff[256];
+    string whole_genome = "";
+    while (fgets(buff, 255, inGenome)) {
+      // ignore lines that start with genome desc, they start with '>'
+      if (buff[0] != '>') {
+        string tmp = buff;
+        tmp.resize(tmp.size() - 1);  // remove endl
+        whole_genome += tmp;
+      }
+    }
+    for(int i = 0; i < gtf_exon_regions.size(); i++) {
+      cout << "INTRON " << i + 1 << endl;
+      cout << whole_genome.substr(gtf_exon_regions[i].first, gtf_exon_regions[i].second - gtf_exon_regions[i].first + 1) << endl;
+      string intron_junction = whole_genome.substr(gtf_exon_regions[i].first, 2) + "-" + whole_genome.substr(gtf_exon_regions[i].second - 1, 2);
+      cout << intron_junction << endl;
+      MAPA[intron_junction]++;
+      cout << endl;  
+    }
+    typedef std::map<std::string, int>::iterator it_type;
+    for(it_type iterator = MAPA.begin(); iterator != MAPA.end(); iterator++) {
+      cout << iterator->first << " " << iterator->second << endl; 
+    }
+  }
+  //
 
   cout << "reconstructing exon regions" << endl;
   cout << endl;
@@ -309,6 +385,7 @@ int main(int argc, char *argv[]) {
   for (int i = 0; i < unmatched_reads_refs.size(); i++) {
     for (; j < all_reads.size(); j++) {
       if (all_reads[j].id == unmatched_reads_refs[i]) {
+        // ALL READS!!!!!!!!!! //cout << all_reads[j].value << endl;
         fprintf(unmatched_reads_file, "%s\n", all_reads[j].id.c_str());
         fprintf(unmatched_reads_file, "%s\n", all_reads[j].value.c_str());
         string tmp = string(all_reads[j].value.size(), 'E');
@@ -330,13 +407,87 @@ int main(int argc, char *argv[]) {
     }
   }
 
+  known_intron_signals.push_back(make_pair("GT", "AG"));
+  known_intron_signals.push_back(make_pair("GC", "AG"));
+  known_intron_signals.push_back(make_pair("AT", "AC"));
+
+  // FINDING INTRONS VIA CANONIC KNOWN SIGNALS
+  for (int i = 1; i < possible_exon_regions.size(); i++) {
+    
+    int bestDiff = -1;
+    int newL, newR;
+    for (int j = 0; j < known_intron_signals.size(); j++) {
+      
+      int found1 = -1;
+      for (int x = possible_exon_regions[i - 1].right - 20; x < possible_exon_regions[i].left; x++) {
+        if (whole_genome[x] == known_intron_signals[j].first[0]) {
+          if (whole_genome[x + 1] == known_intron_signals[j].first[1]) {
+            found1 = x;
+          }
+        }
+        if (x > possible_exon_regions[i - 1].right + 20 && found1 != -1) {
+          break;  
+        }
+      }
+      
+      int found2 = -1;
+      for (int x = possible_exon_regions[i].left + 20; x > possible_exon_regions[i - 1].right; x--) {
+        if (whole_genome[x] == known_intron_signals[j].second[0]) {
+          if (whole_genome[x + 1] == known_intron_signals[j].second[1]) {
+            found2 = x;
+          }
+        }
+        if (x < possible_exon_regions[i - 1].left - 20 && found2 != -1) {
+          break;
+        }
+      }
+
+      if (found1 < found2)
+      cout << "PAROVI "<< found1 << " " << found2 << endl;
+
+      if (found1 != -1 && found2 != -1 && found1 < found2) {
+        if (abs(possible_exon_regions[i - 1].right - found1) + abs(possible_exon_regions[i].left - found2) < bestDiff) {
+          bestDiff = abs(possible_exon_regions[i - 1].right - found1) + abs(possible_exon_regions[i].left - found2);
+          newL = found1;
+          newR = found2;
+        } else if (bestDiff == -1) {
+          bestDiff = abs(possible_exon_regions[i - 1].right - found1) + abs(possible_exon_regions[i].left - found2);
+          newL = found1;
+          newR = found2;  
+        }
+      }
+    }
+
+    // CANONIC INTRONS FOUND
+    if (bestDiff != -1) {
+      cout << "POSSIBLE EXON DELTA= " << bestDiff << endl;
+      cout << "NEW LEFT= " << newL << "   NEW RIGHT= " << newR << endl;
+      possible_exon_regions[i - 1].right = newL;
+      possible_exon_regions[i].left = newR;
+    }
+  }
+
+  vector <int> spliceSites;
+
   string exon_genome = "";
   for (int i = 0; i < possible_exon_regions.size(); i++) {
+    cout << possible_exon_regions[i].left << " " << possible_exon_regions[i].right << ", LENGTH= " << possible_exon_regions[i].right - possible_exon_regions[i].left << endl;
+    cout << 
+      whole_genome.substr(
+        possible_exon_regions[i].left,
+        possible_exon_regions[i].right - possible_exon_regions[i].left + 1) << endl;
+        cout << endl;
+
     exon_genome +=
       whole_genome.substr(
         possible_exon_regions[i].left,
         possible_exon_regions[i].right - possible_exon_regions[i].left + 1);
+
+    spliceSites.push_back(exon_genome.size());
   }
+
+  cout << "POSSIBLE SPLICE JUNCTIONS FOUND: " << spliceSites.size() << endl;
+  if (spliceSites.size()) spliceSites.pop_back();
 
   FILE *outGenome = fopen("tmp.fa", "w");
   fprintf(outGenome, ">chr19\n");
@@ -401,13 +552,29 @@ int main(int argc, char *argv[]) {
         // for now just take the match with best score
         start_positions.push_back(atoi(tmp[2].c_str()));
         all_refs.push_back(firstCol[0]);
+
+        int isOk = 10000000;
+        for (int j = 0; j < spliceSites.size(); j++) {
+          if (abs(spliceSites[j]-atoi(tmp[2].c_str())) < isOk) {
+            isOk = abs(spliceSites[j]-atoi(tmp[2].c_str())) ;
+          }
+        }
+        cout << isOk << endl;
+
+        if (isOk > read_length) {
+          still_unmatched++;  
+        }
+
         break;
       }
     }
   }
+        for (int j = 0; j < spliceSites.size(); j++) {
+          cout << "SPLICE " << spliceSites[j] << endl;
+        }
 
   system("rm -rf tmp");
-  system("rm tmp*");
+  //system("rm tmp*");
 
   cout << (double)(num_all_reads - still_unmatched) / (double)num_all_reads <<
           "% after running against possible exon regions" << endl;
@@ -416,6 +583,8 @@ int main(int argc, char *argv[]) {
 
   clock_t END_TIME = clock();
   cout << "Running time: " << (double)(END_TIME - START_TIME) / CLOCKS_PER_SEC << endl;
+
+  cout << "NUM EXON REGIONS= " << possible_exon_regions.size() << endl;
 
   return 0;
 }
