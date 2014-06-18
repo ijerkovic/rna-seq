@@ -50,8 +50,8 @@ void leaveMatchedReadIds(string readFile) {
     std::getline(input_file, line2);
 
     if (line.substr(1, readIds[num].size()) == readIds[num]) {
-      cout << line << endl;
-      cout << line2 << endl;
+      //cout << line << endl;
+      //cout << line2 << endl;
       num++;
       if (line[line.size() - 1] == 'a') {
         fprintf(tmp1, "%s\n", line.c_str());
