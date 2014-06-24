@@ -1,5 +1,6 @@
 #include <vector>
 #include <sstream>
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
@@ -12,10 +13,12 @@ vector <string> readIds;
 
 map <string, pair <int, int > > CIG;
 
-void compareAlns(string cigFile, string samFile) {
+int is_paired_end = 0;
+
+void compareAlns(string cigFile, string bamFile) {
 
   ifstream cig_in(cigFile.c_str());
-  ifstream sam_in(samFile.c_str());
+  ifstream bam_in(bamFile.c_str());
   string line;
   int ll = 0;
 
@@ -66,8 +69,8 @@ void compareAlns(string cigFile, string samFile) {
     ll++;
   }
 
-  int hit = 0;
-  while (std::getline(sam_in, line)) {
+  int hit = 0, reported_reads = 0;
+  while (std::getline(bam_in, line)) {
 
     istringstream iss(line);
     string col;
@@ -75,6 +78,8 @@ void compareAlns(string cigFile, string samFile) {
     while(iss >> col) {
       cols.push_back(col);
     }
+
+    reported_reads++;
 
     pair <int, int> par = CIG[cols[3]];
     if (par.first - 1 == atoi(cols[1].c_str()) || par.second == atoi(cols[2].c_str())) {
@@ -85,15 +90,28 @@ void compareAlns(string cigFile, string samFile) {
   
   }
   
-  cout << "OUT OF " << ll << " ALL READS " << hit << " ALIGNED CORRECTLY ";
+  if (!is_paired_end) {
+    ll /= 2;  
+  }
+
+  cout << "OUT OF " << reported_reads << " ALL READS " << hit << " ALIGNED CORRECTLY ";
+  cout << (double)hit/reported_reads * 100 << "%" << endl;
+
+  cout << "OUT OF " << ll << " ALL READS IN CIG FILE " << hit << " ALIGNED CORRECTLY ";
   cout << (double)hit/ll * 100 << "%" << endl;
 }
 
 int main(int argc, char *argv[]) {
 
-  if (argc != 3) {
-    cout << "usage: samVsBeers <beers.cig> <aln.sam>" << endl;
+  if (argc < 3) {
+    cout << "usage: bamVsBeers <beers.cig> <aln.bam>" << endl;
+    cout << "options:" << endl;
+    cout << "--paired-end" << endl;
     return -1;
+  }
+
+  if (argc >= 4 && strcmp(argv[3], "--paired-end") == 0) {
+    is_paired_end = 1;
   }
 
   compareAlns(argv[1], argv[2]);

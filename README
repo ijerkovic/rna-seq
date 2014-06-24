@@ -1,12 +1,22 @@
-run ./scripts/setup.sh to export binaries to PATH needed to run rna-seq or do it manually.
-'client' and 'rna-seq' are needed to be included in you PATH variable.
+rna-seq has few dependencies, depending on the genome aligner that is being used.
+BWA, Bowtie, Bowtie2 or LISA can be used, but they have to be exported to the PATH variable then.
 
 rna-seq is a tool for mapping rna reads against its genome, without knowing where the exon regions in genome initially are.
 
-Usage: rna-seq <genome.fa> <index_dir> <reads.fq> <result_file> <optional-gtf-file>
+Usage: rna-seq <aligner> <genome.fa> <index_dir> <reads.fq> <result_file>
 
-<genome.fa> is the genome file from which reads were extracted
-<index_dir> is directory name where data for genome index will be held
-<reads.fq> rna-reads in fastq/fq format
-<result_file> file with various statistics
-<optional-gtf-file> helps in more accurate finding of reads to exons mappings - not being used yet
+<aligner>      - 'bowtie', 'bowtie2', 'bwa' or 'lisa'
+<genome.fa>    - fasta file containing genome
+<index_dir>    - prefix used for aligners for storing temporary files
+<reads.fq>     - fastq file with reads to be aligned
+<result_file>  - file in sam format containing overall alignments
+
+options:
+--cov-limit [coverage-limit-number]    - potential exons with coverage limit lower than specified are discarded
+--skip-building-index                  - when running on same genome index again no need to wait for index building
+--res-cig [res.cig]                    - file in cig format for validating results
+--sliding-window-size/-sws [size]      - size of the granulation for cutting initially unmatched reads into smaller chunks - used for spliced matching
+--join-exons-threshold/-jet [size]     - if two exons are too close join them (default: 100)
+--extend-exons-threshold/-eet [size]   - how much to extend exons on right and left side for finding reads that were spliced (default:50)
+--get-histogram-data                   - creates a hist.in file showing coverage data before spliced alignment
+--num-threads [num]                    - number of threads for spliced alignment
