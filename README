@@ -20,3 +20,16 @@ options:
 --extend-exons-threshold/-eet [size]   - how much to extend exons on right and left side for finding reads that were spliced (default:50)
 --get-histogram-data                   - creates a hist.in file showing coverage data before spliced alignment
 --num-threads [num]                    - number of threads for spliced alignment
+
+
+/rna-seq
+contains main cpp code
+
+/scripts
+contains various scripts used for testing and data preparation
+all the scripts have a --help option for more information
+few of them are written in cpp so compilation is necessary
+
+/lisa
+contains various lisa related binaries, currently lisa is dependant on divsufsort and gflags that need to be in LD_LIBRARY_PATH.
+Lisa is being developed independently of rna-seq, more info can be found here https://github.com/Zuza/dtra 
