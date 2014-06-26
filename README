@@ -3,6 +3,8 @@ BWA, Bowtie, Bowtie2 or LISA can be used, but they have to be exported to the PA
 
 rna-seq is a tool for mapping rna reads against its genome, without knowing where the exon regions in genome initially are.
 
+run 'make' to compile and generate the rna-seq binary
+
 Usage: rna-seq <aligner> <genome.fa> <index_dir> <reads.fq> <result_file>
 
 <aligner>      - 'bowtie', 'bowtie2', 'bwa' or 'lisa'
@@ -22,7 +24,7 @@ options:
 --num-threads [num]                    - number of threads for spliced alignment
 
 
-/rna-seq
+/src
 contains main cpp code
 
 /scripts
@@ -33,3 +35,6 @@ few of them are written in cpp so compilation is necessary
 /lisa
 contains various lisa related binaries, currently lisa is dependant on divsufsort and gflags that need to be in LD_LIBRARY_PATH.
 Lisa is being developed independently of rna-seq, more info can be found here https://github.com/Zuza/dtra 
+
+/bin
+contains binaries
